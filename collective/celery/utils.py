@@ -79,13 +79,15 @@ def getCeleryOptions():
             elif not isinstance(value, opt_type[0]):
                 value = opt_type[1](value)
         config[key] = value
+    print(config)
     return config
 
 
 def _getCelery():
-    celery.add_defaults(getCeleryOptions())
+    #celery.add_defaults(getCeleryOptions())
     # delete cached property in order to get them reloaded from the new conf
-    del(celery.backend)
+    #del(celery.backend)
+    celery.conf.update(getCeleryOptions())
     for name, task in registry.tasks.items():
         # ensure that every already registed tasks doens use an unconfigured
         # backend.

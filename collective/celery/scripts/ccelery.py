@@ -1,6 +1,7 @@
 # a lot of this pulled out of pyramid_celery
 from importlib import import_module
 import os
+import six
 import sys
 
 from App.config import getConfiguration
@@ -39,8 +40,24 @@ def main(argv=sys.argv):
     filepath = sys.argv[conf_index]
     os.environ['ZOPE_CONFIG'] = filepath
     sys.argv = ['']
-    from Zope2.Startup.run import configure
-    startup = configure(os.environ['ZOPE_CONFIG'])
+    if '--wsgi' in argv or '-w' in argv:
+        try:
+            idx = argv.index('--wsgi')
+        except ValueError:
+            idx = argv.index('-w')
+        opt = argv[idx + 1:idx + 2]
+        if opt:
+            wsgi = opt[0].lower() in ('off', 'false', '0')
+        else:
+            wsgi = True
+    else:
+        wsgi = False
+    if six.PY2 and not wsgi:
+        from Zope2.Startup.run import configure
+        startup = configure(os.environ['ZOPE_CONFIG'])
+    else:
+        from Zope2.Startup.run import configure_wsgi
+        startup = configure_wsgi(os.environ['ZOPE_CONFIG'])
 
     # Fix for setuptools generated scripts, so that it will
     # work with multiprocessing fork emulation.
@@ -81,4 +98,4 @@ def main(argv=sys.argv):
     argv.remove(filepath)
     # restore argv
     sys.argv = argv
-    Worker(app=getCelery()).execute_from_commandline()
+    getCelery().Worker(include=tasks).start()
